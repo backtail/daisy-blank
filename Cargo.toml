@@ -12,6 +12,8 @@ panic-halt = "0.2.0"
 libdaisy = { path = "libdaisy-rust"}
 embedded-sdmmc = "0.3.0"
 
+libm = "0.2.5"
+
 # For debug purposes
 rtt-target = { version = "0.3.0", features = ["cortex-m"], optional = true}
 
