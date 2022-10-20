@@ -1,0 +1,3 @@
+[submodule "libdaisy-rust"]
+	path = libdaisy-rust
+	url = https://github.com/backtail/libdaisy-rust

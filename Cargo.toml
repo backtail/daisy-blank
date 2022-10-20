@@ -1,0 +1,19 @@
+[package]
+name = "daisy-blank"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cortex-m-rtic = "1.0.0"
+cortex-m = "^0.7.1"
+cortex-m-rt = { version = "^0.6.13", features = ["device"] }
+stm32h7xx-hal = { version = "0.11.0", features = [ "stm32h750v", "rt", "revision_v", "usb_hs" ] }
+panic-halt = "0.2.0"
+libdaisy = { path = "libdaisy-rust"}
+embedded-sdmmc = "0.3.0"
+
+# For debug purposes
+rtt-target = { version = "0.3.0", features = ["cortex-m"], optional = true}
+
+[features]
+log = ['libdaisy/log-rtt', "rtt-target"]
