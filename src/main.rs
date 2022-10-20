@@ -7,7 +7,7 @@ pub mod encoder;
 pub mod rgbled;
 pub mod sd_card;
 
-pub const CONTROL_RATE_IN_MS: u32 = 10;
+pub const CONTROL_RATE_IN_MS: u32 = 100;
 
 #[rtic::app(
     device = stm32h7xx_hal::stm32,
@@ -27,6 +27,8 @@ mod app {
     struct Local {
         ar: AudioRate,
         cr: ControlRate,
+        phase: f32,
+        pitch: f32,
     }
 
     #[init]
@@ -47,6 +49,8 @@ mod app {
             Local {
                 ar: daisy.audio_rate,
                 cr: daisy.control_rate,
+                phase: 0.0,
+                pitch: 440.0,
             },
             init::Monotonics(),
         )
@@ -62,15 +66,26 @@ mod app {
     }
 
     // Interrupt handler for audio
-    #[task(binds = DMA1_STR1, local = [ar], shared = [], priority = 8)]
+    #[task(binds = DMA1_STR1, local = [ar, phase, pitch], shared = [], priority = 8)]
     fn audio_handler(ctx: audio_handler::Context) {
         let audio = &mut ctx.local.ar.audio;
-        let mut buffer = ctx.local.ar.buffer;
+        let buffer = &mut ctx.local.ar.buffer;
+        let phase = ctx.local.phase;
+        let pitch = ctx.local.pitch;
 
-        audio.get_stereo(&mut buffer);
+        audio.get_stereo(buffer);
+        for _ in 0..buffer.len() {
+            // phase is gonna get bigger and bigger
+            // at some point floating point errors will quantize the pitch
+            *phase += *pitch / libdaisy::AUDIO_SAMPLE_RATE as f32;
+            let mono = libm::sinf(*phase);
+            audio.push_stereo((mono, mono)).unwrap();
 
-        for (left, right) in buffer {
-            audio.push_stereo((left, right)).unwrap();
+            if *pitch > 10_000.0 {
+                *pitch = 440.0;
+            }
+
+            *pitch += 0.1;
         }
     }
 
