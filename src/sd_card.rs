@@ -1,5 +1,7 @@
 use embedded_sdmmc::{Controller, Directory, TimeSource, Timestamp, Volume, VolumeIdx};
-use stm32h7xx_hal::time::U32Ext;
+use stm32h7xx_hal::sdmmc::SdCard;
+
+use stm32h7xx_hal::time::Hertz;
 use stm32h7xx_hal::{
     device::SDMMC1,
     sdmmc::{Sdmmc, SdmmcBlockDevice},
@@ -20,20 +22,20 @@ impl TimeSource for FakeTime {
     }
 }
 
-pub struct SdCard {
-    sd_card: Controller<SdmmcBlockDevice<Sdmmc<SDMMC1>>, FakeTime>,
+pub struct SdCardLocal {
+    sd_card: Controller<SdmmcBlockDevice<Sdmmc<SDMMC1, SdCard>>, FakeTime>,
     fat_volume: Volume,
     fat_root_dir: Directory,
 }
 
-impl SdCard {
-    pub fn new(mut sd_card: Sdmmc<SDMMC1>) -> Self {
+impl SdCardLocal {
+    pub fn new(mut sd_card: Sdmmc<SDMMC1, SdCard>) -> Self {
         // setup connection to SD card with 50MHz
-        if let Ok(_) = sd_card.init_card(U32Ext::mhz(50)) {
+        if let Ok(_) = sd_card.init(Hertz::MHz(50)) {
             let mut sd_card = Controller::new(sd_card.sdmmc_block_device(), FakeTime);
             if let Ok(fat_volume) = sd_card.get_volume(VolumeIdx(0)) {
                 if let Ok(fat_root_dir) = sd_card.open_root_dir(&fat_volume) {
-                    SdCard {
+                    SdCardLocal {
                         sd_card,
                         fat_volume,
                         fat_root_dir,

@@ -25,3 +25,12 @@ After that, you can flash your Daisy
 $ cargo embed               # debug mode
 $ cargo embed --release     # fast, smallest size
 ```
+
+### microUSB
+
+[First, install cargo-binutils](https://github.com/rust-embedded/cargo-binutils)
+
+``` shell
+$ cargo objcopy --release -- -O binary a.bin
+$ dfu-util -a 0 -s 0x08000000 -D a.bin 
+```

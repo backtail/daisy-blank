@@ -2,11 +2,12 @@ use libdaisy::prelude::*;
 use libdaisy::{audio, gpio::*, hid, sdmmc, system::System};
 
 use stm32h7xx_hal::timer::Timer;
+use stm32h7xx_hal::time::Hertz;
 use stm32h7xx_hal::{adc, pac, stm32};
 
 use crate::encoder;
 use crate::rgbled::*;
-use crate::sd_card::{self, SdCard};
+use crate::sd_card::{self, SdCardLocal};
 use crate::CONTROL_RATE_IN_MS;
 
 // typedefs
@@ -17,11 +18,11 @@ pub type Led1 =
     RGBLed<Daisy20<Output<PushPull>>, Daisy19<Output<PushPull>>, Daisy18<Output<PushPull>>>;
 pub type Led2 =
     RGBLed<Daisy17<Output<PushPull>>, Daisy24<Output<PushPull>>, Daisy23<Output<PushPull>>>;
-pub type Switch1 = hid::Switch<Daisy27<Input<PullUp>>>;
-pub type Switch2 = hid::Switch<Daisy28<Input<PullUp>>>;
+pub type Switch1 = hid::Switch<Daisy27<Input>>;
+pub type Switch2 = hid::Switch<Daisy28<Input>>;
 
 pub type Encoder =
-    encoder::RotaryEncoder<Daisy13<Input<PullUp>>, Daisy25<Input<PullUp>>, Daisy26<Input<PullUp>>>;
+    encoder::RotaryEncoder<Daisy13<Input>, Daisy25<Input>, Daisy26<Input>>;
 
 pub struct AudioRate {
     pub audio: audio::Audio,
@@ -47,7 +48,7 @@ pub struct DaisyPod {
     pub audio_rate: AudioRate,
     pub control_rate: ControlRate,
     pub sdram: &'static mut [f32],
-    pub sd_card: Option<SdCard>,
+    pub sd_card: Option<SdCardLocal>,
 }
 
 impl DaisyPod {
@@ -62,7 +63,7 @@ impl DaisyPod {
 
         // set user led to low
         let mut seed_led = system.gpio.led;
-        seed_led.set_high().unwrap();
+        seed_led.set_high();
 
         // setting up SDRAM
         let sdram = system.sdram;
@@ -85,20 +86,20 @@ impl DaisyPod {
         let sd_card;
 
         if cfg!(sd_card) {
-            sd_card = Some(sd_card::SdCard::new(sd));
+            sd_card = Some(sd_card::SdCardLocal::new(sd));
         } else {
             sd_card = None;
         }
 
         // setup TIM2
 
-        system.timer2.set_freq(CONTROL_RATE_IN_MS.ms());
+        system.timer2.set_freq( Hertz::millis(CONTROL_RATE_IN_MS));
 
         // Setup ADC1
 
         let mut adc1 = system.adc1.enable();
-        adc1.set_resolution(adc::Resolution::SIXTEENBIT);
-        let adc1_max_value = adc1.max_sample() as f32;
+        adc1.set_resolution(adc::Resolution::SixteenBit);
+        let adc1_max_value = adc1.slope() as f32;
 
         // setup analog reads from potentiometer
 
@@ -222,7 +223,7 @@ impl DaisyPod {
         // Daisy Pod setup finished
 
         // set user led to low
-        seed_led.set_low().unwrap();
+        seed_led.set_low();
 
         Self {
             audio_rate: AudioRate {
